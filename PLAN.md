@@ -5,7 +5,16 @@ cross-device sync is via Firebase through a `SyncService`, not `cloudKitDatabase
 have default values/optionals, and progress writes must still be throttled/debounced during Read-Aloud.
 All other guardrails (Read-Aloud, EPUB/PDF parsers) are unchanged.
 
-Auditor: Claude Code. Implementer: Codex. Do not implement until the "Decisions" section is resolved.
+Auditor: Claude Code. Implementer: Codex.
+
+## 0. Current status and where things live
+
+- **Done but unverified (never compiled):** Phase 0 (library), Phase 1 (app shell), Phase 2 (EPUB Read-Aloud), Phase 2b (PDF Read-Aloud). They were written by the auditor before the role split and have not been built or run. **T-00 is the first task:** make them build and pass on macOS.
+- **Task list and order:** `docs/planning/backlog.md` (T-00 to T-11).
+- **Design spec:** `docs/design/DESIGN.md` (Kindle + Apple Books direction).
+- **Decisions (open and decided):** `docs/decisions/open-decisions.md`. Blocking now: D-01 (where iOS is built).
+- **Workflow, autonomy policy, review rules:** `docs/planning/`. Role files: `CLAUDE.md`, `AGENTS.md`.
+- Sections 1 to 5 below are the original audit and strategy and stay as background; the backlog supersedes the phase list in section 3 for ordering.
 
 ## 1. Audit: what the repo actually is
 
