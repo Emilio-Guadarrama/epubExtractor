@@ -11,17 +11,6 @@ struct EpubReaderView: View {
     @State private var model: EpubReaderModel?
     @State private var showingContents = false
 
-    private struct Speed: Identifiable {
-        let label: String
-        let rate: Double
-        var id: Double { rate }
-    }
-
-    private static let speeds = [
-        Speed(label: "Slow", rate: 0.42), Speed(label: "Normal", rate: 0.5),
-        Speed(label: "Fast", rate: 0.55), Speed(label: "Faster", rate: 0.6)
-    ]
-
     var body: some View {
         Group {
             if let model {
@@ -80,44 +69,17 @@ struct EpubReaderView: View {
     }
 
     private func playerBar(_ model: EpubReaderModel, epub: Epub) -> some View {
-        let speech = model.speech
-        return VStack(spacing: 8) {
-            HStack {
-                Text("\(book.spineIndex + 1) of \(epub.spines.count)")
-                    .font(.footnote.monospacedDigit())
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Menu {
-                    Picker("Speed", selection: $speechRate) {
-                        ForEach(Self.speeds) { Text($0.label).tag($0.rate) }
-                    }
-                } label: {
-                    Label(Self.speeds.first { $0.rate == speechRate }?.label ?? "Speed", systemImage: "speedometer")
-                        .font(.footnote)
-                }
-            }
-            HStack(spacing: 32) {
-                Button("Previous Section", systemImage: "backward.end.fill") { Task { await model.move(by: -1) } }
-                    .disabled(book.spineIndex <= 0)
-                Button("Previous Sentence", systemImage: "gobackward") { speech.skipSentence(-1) }
-                    .disabled(speech.state == .idle)
-                Button(speech.state == .playing ? "Pause" : "Play",
-                       systemImage: speech.state == .playing ? "pause.circle.fill" : "play.circle.fill") {
-                    model.toggleSpeech(rate: Float(speechRate))
-                }
-                .font(.system(size: 44))
-                Button("Next Sentence", systemImage: "goforward") { speech.skipSentence(1) }
-                    .disabled(speech.state == .idle)
-                Button("Next Section", systemImage: "forward.end.fill") { Task { await model.move(by: 1) } }
-                    .disabled(book.spineIndex >= epub.spines.count - 1)
-            }
-            .labelStyle(.iconOnly)
-            .font(.title3)
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 10)
-        .frame(maxWidth: .infinity)
-        .background(.ultraThinMaterial)
+        PlayerBarView(
+            speech: model.speech,
+            positionLabel: "\(book.spineIndex + 1) of \(epub.spines.count)",
+            unitName: "Section",
+            rate: $speechRate,
+            canGoBack: book.spineIndex > 0,
+            canGoForward: book.spineIndex < epub.spines.count - 1,
+            onPreviousUnit: { Task { await model.move(by: -1) } },
+            onNextUnit: { Task { await model.move(by: 1) } },
+            onToggle: { model.toggleSpeech(rate: Float(speechRate)) }
+        )
     }
 }
 

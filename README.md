@@ -3,7 +3,7 @@
 An EPUB/PDF reader with Read-Aloud for iPhone and iPad, built on a Swift package that unzips and parses EPUB 2 and EPUB 3 files.
 Forked from [f-meloni/EpubExtractor](https://github.com/f-meloni/EpubExtractor) and being rebuilt as a full reader app. An Android app for tablets is planned.
 
-> **Status: work in progress, not yet built or tested.** Phases 0 to 2 were written without access to a Swift toolchain.
+> **Status: work in progress, not yet built or tested.** Phases 0 to 2b were written without access to a Swift toolchain.
 > Run `swift test` and build the app on a Mac before relying on any of it. Plan and decisions: [PLAN.md](PLAN.md).
 
 ## Features
@@ -15,7 +15,7 @@ Forked from [f-meloni/EpubExtractor](https://github.com/f-meloni/EpubExtractor) 
 | PDF reader with saved page | `PDFKit` | written |
 | Read-Aloud for EPUB: word and sentence highlighting, auto-scroll, speed, skip by sentence or section | `AVSpeechSynthesizer` | written |
 | Background audio and Lock Screen controls | `AVAudioSession`, `MPNowPlayingInfoCenter`, `MPRemoteCommandCenter` | written |
-| Read-Aloud for PDF | `PDFKit` | planned (Phase 2b) |
+| Read-Aloud for PDF: page-by-page, word and sentence highlighting, auto-scroll (text PDFs only; scans have no selectable text) | `PDFKit` + `AVSpeechSynthesizer` | written |
 | Cross-device sync (iPhone and Android tablet) | Firebase | planned (Phase 3) |
 | Android app | Kotlin + Jetpack Compose | planned |
 

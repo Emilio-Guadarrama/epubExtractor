@@ -72,6 +72,26 @@ import Testing
         #expect(TextChunker.sentenceRange(containing: 999, in: ns) == nil)
     }
 
+    @Test func reflowJoinsHardWrappedLinesAndKeepsParagraphs() {
+        #expect(TextChunker.reflowed("a\nb") == "a b")
+        #expect(TextChunker.reflowed("a\r\nb") == "a  b")
+        #expect(TextChunker.reflowed("a\n\nb") == "a\n\nb")
+        #expect(TextChunker.reflowed("a\r\n\r\nb") == "a\r\n\r\nb")
+        #expect(TextChunker.reflowed("line one\nline two. Next\nline") == "line one line two. Next line")
+    }
+
+    @Test func reflowPreservesUTF16Length() {
+        for sample in ["", "\n", "a\n😀\nb\r\n\r\nc\r", "😀\n😀", "x\ny\rz\r\nw"] {
+            #expect(TextChunker.reflowed(sample).utf16.count == sample.utf16.count)
+        }
+    }
+
+    @Test func reflowedTextChunksAsSentencesNotLines() {
+        let wrapped = "This sentence is wrapped\nacross three\nshort lines. Another one."
+        let chunks = TextChunker.chunks(in: TextChunker.reflowed(wrapped), maxLength: 600)
+        #expect(chunks.count == 1)
+    }
+
     @Test func skipsWhitespace() {
         let ns = "end.  \n Next" as NSString
         #expect(TextChunker.skipWhitespace(from: 4, in: ns) == ns.range(of: "Next").location)

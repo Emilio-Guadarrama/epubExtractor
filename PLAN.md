@@ -41,7 +41,7 @@ Build a native **SwiftUI reader app for iPhone 15 (and iPad)** on top of a moder
 
 Phase 0 — Modernize core (SPM package, iOS 18, Swift 6 mode, fix items 1–9). Gate: unit tests parse all 9 sample epubs.
 Phase 1 — App shell: library grid (`.ultraThinMaterial`, SF Symbols), import via `.fileImporter`, reader view for EPUB (text from spines) and PDF (`PDFKit`).
-Phase 2 — Read-Aloud (EPUB implemented, awaiting on-device verification; PDF Read-Aloud is Phase 2b: `PDFPage.string` per page, highlight via `PDFSelection`): `AVSpeechSynthesizer`, `willSpeakRangeOfSpeechString` highlighting, auto-scroll, `AVAudioSession` playback + background mode, `MPNowPlayingInfoCenter` + `MPRemoteCommandCenter`.
+Phase 2 — Read-Aloud (EPUB implemented, awaiting on-device verification; PDF Read-Aloud (Phase 2b) is also implemented, unverified: `PDFPage.string` per page, highlight via `PDFSelection`): `AVSpeechSynthesizer`, `willSpeakRangeOfSpeechString` highlighting, auto-scroll, `AVAudioSession` playback + background mode, `MPNowPlayingInfoCenter` + `MPRemoteCommandCenter`.
 Phase 3 — SwiftData + CloudKit: all properties defaulted/optional, no unique constraints, progress writes debounced (≥ 5 s or on pause/stop/scene change, never per utterance callback).
 
 Audit checklist per PR: TTS delegate isolation (`@MainActor`), no audio-session deactivation on interruption without resume, no non-optional/unique SwiftData fields, no per-word persistence.

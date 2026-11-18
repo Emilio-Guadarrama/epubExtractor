@@ -70,6 +70,35 @@ public enum TextChunker {
         return result
     }
 
+    /// Replaces single line breaks with spaces so hard-wrapped text (typical of PDF extraction) reads as
+    /// flowing sentences; runs of two or more breaks (paragraphs) are kept. The result has exactly the same
+    /// UTF-16 length as the input, so ranges in it are valid offsets in the original.
+    public static func reflowed(_ text: String) -> String {
+        var units = Array(text.utf16)
+        let count = units.count
+        func isBreak(_ unit: UInt16) -> Bool { unit == 0x0A || unit == 0x0D }
+
+        var index = 0
+        while index < count {
+            guard isBreak(units[index]) else {
+                index += 1
+                continue
+            }
+            var end = index
+            var breaks = 0
+            while end < count, isBreak(units[end]) {
+                // CR LF counts as one break.
+                end += (units[end] == 0x0D && end + 1 < count && units[end + 1] == 0x0A) ? 2 : 1
+                breaks += 1
+            }
+            if breaks == 1 {
+                for position in index..<end { units[position] = 0x20 }
+            }
+            index = end
+        }
+        return String(decoding: units, as: UTF16.self)
+    }
+
     /// The sentence (including trailing whitespace) containing UTF-16 offset `location`.
     public static func sentenceRange(containing location: Int, in text: NSString) -> NSRange? {
         guard location >= 0, location < text.length else { return nil }

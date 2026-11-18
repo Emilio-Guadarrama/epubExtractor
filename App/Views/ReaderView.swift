@@ -7,7 +7,7 @@ struct ReaderView: View {
         Group {
             switch book.kind {
             case .epub: EpubReaderView(book: book)
-            case .pdf: PDFReaderView(book: book)
+            case .pdf: PDFReaderScreen(book: book)
             }
         }
         .navigationTitle(book.title)
