@@ -58,6 +58,12 @@ public struct Epub: Sendable {
         epubContentParser.chapters
     }
 
+    /// Index in `spines` of the file a table-of-contents entry points to (its `#fragment` is ignored).
+    public func spineIndex(for chapter: ChapterItem) -> Int? {
+        let target = chapter.src.standardizedFileURL.path
+        return spines.firstIndex { (try? epubContentParser.fileURL(forSpine: $0))?.path == target }
+    }
+
     /// Plain text of one spine item. Thread-safe and suitable for text-to-speech.
     public func content(forSpine spine: SpineItem) throws -> String {
         try epubContentParser.plainText(forSpine: spine)

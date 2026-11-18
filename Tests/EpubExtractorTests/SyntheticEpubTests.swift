@@ -143,6 +143,7 @@ private let epub2Files: [String: String] = [
         #expect(epub.coverURL?.lastPathComponent == "cover.png")
         #expect(epub.chapters.count == 1)
         #expect(epub.chapters[0].label == "First")
+        #expect(epub.spineIndex(for: epub.chapters[0]) == 0)
         #expect(try epub.content(forSpine: epub.spines[0]) == "Body")
     }
 

@@ -38,6 +38,11 @@ public struct EpubExtractor: Sendable {
         }.value
     }
 
+    /// Parses a folder previously produced by `extract`, without unzipping again.
+    public func open(extractedDirectory: URL) throws -> Epub {
+        try EpubParser().parseEpub(epubDirectoryURL: extractedDirectory)
+    }
+
     /// Deletes the extracted files of a book.
     public func removeExtractedEpub(_ epub: Epub) throws {
         try FileManager.default.removeItem(at: epub.epubDirectoryURL)

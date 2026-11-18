@@ -4,7 +4,20 @@ Swift package that unzips and parses EPUB 2 / EPUB 3 files. Requires Swift 6, iO
 Dependencies: [AEXML](https://github.com/tadija/AEXML), [ZIPFoundation](https://github.com/weichsel/ZIPFoundation).
 
 > This fork is being modernized as the core of a reader app; see [PLAN.md](PLAN.md).
-> The `Example/` UIKit demo still targets the old CocoaPods setup and is not buildable until it is replaced.
+> The `Example/` UIKit demo still targets the old CocoaPods setup and is not buildable; the SwiftUI app in `App/` replaces it.
+
+## Reader app (iOS 18+, iPhone and iPad)
+
+SwiftUI app in `App/`: library grid, import of `.epub`/`.pdf` via the Files picker, EPUB reader (text, contents, text size) and PDF reader (`PDFKit`). Library data is stored locally with SwiftData. Read-Aloud is Phase 2.
+Requires a Mac with Xcode 16+:
+
+```sh
+brew install xcodegen
+xcodegen                      # generates EpubReader.xcodeproj from project.yml
+open EpubReader.xcodeproj
+```
+
+Run the library tests with `swift test` (macOS) or from Xcode.
 
 ## Usage
 
