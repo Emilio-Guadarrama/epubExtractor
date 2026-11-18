@@ -8,7 +8,7 @@ Dependencies: [AEXML](https://github.com/tadija/AEXML), [ZIPFoundation](https://
 
 ## Reader app (iOS 18+, iPhone and iPad)
 
-SwiftUI app in `App/`: library grid, import of `.epub`/`.pdf` via the Files picker, EPUB reader (text, contents, text size) and PDF reader (`PDFKit`). Library data is stored locally with SwiftData. Read-Aloud is Phase 2.
+SwiftUI app in `App/`: library grid, import of `.epub`/`.pdf` via the Files picker, EPUB reader (text, contents, text size) and PDF reader (`PDFKit`). Library data is stored locally with SwiftData. EPUBs have Read-Aloud (`AVSpeechSynthesizer`) with word and sentence highlighting, auto-scroll, background audio and Lock Screen controls; Read-Aloud for PDFs is not implemented yet.
 Requires a Mac with Xcode 16+:
 
 ```sh

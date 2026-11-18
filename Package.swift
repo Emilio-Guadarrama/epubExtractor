@@ -5,7 +5,8 @@ let package = Package(
     name: "EpubExtractor",
     platforms: [.iOS(.v18), .macOS(.v15)],
     products: [
-        .library(name: "EpubExtractor", targets: ["EpubExtractor"])
+        .library(name: "EpubExtractor", targets: ["EpubExtractor"]),
+        .library(name: "ReadAloudCore", targets: ["ReadAloudCore"])
     ],
     dependencies: [
         .package(url: "https://github.com/tadija/AEXML.git", from: "4.6.1"),
@@ -19,10 +20,15 @@ let package = Package(
                 .product(name: "ZIPFoundation", package: "ZIPFoundation")
             ]
         ),
+        .target(name: "ReadAloudCore"),
         .testTarget(
             name: "EpubExtractorTests",
             dependencies: ["EpubExtractor"],
             resources: [.copy("Fixtures")]
+        ),
+        .testTarget(
+            name: "ReadAloudCoreTests",
+            dependencies: ["ReadAloudCore"]
         )
     ]
 )

@@ -2,120 +2,129 @@ import EpubExtractor
 import SwiftUI
 
 struct EpubReaderView: View {
-    @Bindable var book: Book
-    @AppStorage("readerFontSize") private var fontSize = 18.0
+    let book: Book
 
-    @State private var epub: Epub?
-    @State private var loadError: String?
-    @State private var text = ""
+    @AppStorage("readerFontSize") private var fontSize = 18.0
+    @AppStorage("speechRate") private var speechRate = 0.5
+    @Environment(\.scenePhase) private var scenePhase
+
+    @State private var model: EpubReaderModel?
     @State private var showingContents = false
+
+    private struct Speed: Identifiable {
+        let label: String
+        let rate: Double
+        var id: Double { rate }
+    }
+
+    private static let speeds = [
+        Speed(label: "Slow", rate: 0.42), Speed(label: "Normal", rate: 0.5),
+        Speed(label: "Fast", rate: 0.55), Speed(label: "Faster", rate: 0.6)
+    ]
 
     var body: some View {
         Group {
-            if let epub {
-                content(for: epub)
-            } else if let loadError {
-                ContentUnavailableView("Could Not Open Book", systemImage: "exclamationmark.triangle", description: Text(loadError))
+            if let model {
+                if let epub = model.epub {
+                    reader(model, epub: epub)
+                } else if let error = model.loadError {
+                    ContentUnavailableView("Could Not Open Book", systemImage: "exclamationmark.triangle", description: Text(error))
+                } else {
+                    ProgressView()
+                }
             } else {
                 ProgressView()
             }
         }
-        .task { await load() }
-    }
-
-    private func content(for epub: Epub) -> some View {
-        ReaderTextView(text: text.isEmpty ? "(This section has no text.)" : text, fontSize: fontSize)
-            .safeAreaInset(edge: .bottom) { pager(for: epub) }
-            .toolbar {
-                ToolbarItemGroup(placement: .primaryAction) {
-                    Menu("Text Size", systemImage: "textformat.size") {
-                        Button("Larger", systemImage: "plus") { fontSize = min(fontSize + 2, 36) }
-                        Button("Smaller", systemImage: "minus") { fontSize = max(fontSize - 2, 12) }
-                    }
-                    Button("Contents", systemImage: "list.bullet") { showingContents = true }
-                }
-            }
-            .sheet(isPresented: $showingContents) {
-                ContentsSheet(epub: epub, currentIndex: book.spineIndex) { index in
-                    showingContents = false
-                    Task { await show(index, in: epub) }
-                }
-            }
-    }
-
-    private func pager(for epub: Epub) -> some View {
-        HStack {
-            Button("Previous", systemImage: "chevron.left") { Task { await show(book.spineIndex - 1, in: epub) } }
-                .disabled(book.spineIndex <= 0)
-            Spacer()
-            Text("\(book.spineIndex + 1) of \(epub.spines.count)")
-                .font(.footnote.monospacedDigit())
-                .foregroundStyle(.secondary)
-            Spacer()
-            Button("Next", systemImage: "chevron.right") { Task { await show(book.spineIndex + 1, in: epub) } }
-                .disabled(book.spineIndex >= epub.spines.count - 1)
+        .task {
+            guard model == nil else { return }
+            let created = EpubReaderModel(book: book)
+            created.speech.setRate(Float(speechRate))
+            model = created
+            await created.load()
         }
-        .labelStyle(.iconOnly)
+        .onDisappear { model?.shutdown() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .background { model?.persistPosition(force: true) }
+        }
+        .onChange(of: speechRate) { _, rate in model?.speech.setRate(Float(rate)) }
+    }
+
+    private func reader(_ model: EpubReaderModel, epub: Epub) -> some View {
+        let speech = model.speech
+        let isSpeaking = speech.state != .idle
+        return ReaderTextView(
+            text: model.text.isEmpty ? "(This section has no text.)" : model.text,
+            fontSize: fontSize,
+            startLocation: model.startLocation,
+            wordRange: isSpeaking ? speech.wordRange : nil,
+            sentenceRange: isSpeaking ? speech.sentenceRange : nil,
+            autoScroll: speech.state == .playing
+        )
+        .safeAreaInset(edge: .bottom) { playerBar(model, epub: epub) }
+        .toolbar {
+            ToolbarItemGroup(placement: .primaryAction) {
+                Menu("Text Size", systemImage: "textformat.size") {
+                    Button("Larger", systemImage: "plus") { fontSize = min(fontSize + 2, 36) }
+                    Button("Smaller", systemImage: "minus") { fontSize = max(fontSize - 2, 12) }
+                }
+                Button("Contents", systemImage: "list.bullet") { showingContents = true }
+            }
+        }
+        .sheet(isPresented: $showingContents) {
+            ContentsSheet(entries: model.contents, currentIndex: book.spineIndex) { index in
+                showingContents = false
+                Task { await model.jump(toSpine: index) }
+            }
+        }
+    }
+
+    private func playerBar(_ model: EpubReaderModel, epub: Epub) -> some View {
+        let speech = model.speech
+        return VStack(spacing: 8) {
+            HStack {
+                Text("\(book.spineIndex + 1) of \(epub.spines.count)")
+                    .font(.footnote.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Menu {
+                    Picker("Speed", selection: $speechRate) {
+                        ForEach(Self.speeds) { Text($0.label).tag($0.rate) }
+                    }
+                } label: {
+                    Label(Self.speeds.first { $0.rate == speechRate }?.label ?? "Speed", systemImage: "speedometer")
+                        .font(.footnote)
+                }
+            }
+            HStack(spacing: 32) {
+                Button("Previous Section", systemImage: "backward.end.fill") { Task { await model.move(by: -1) } }
+                    .disabled(book.spineIndex <= 0)
+                Button("Previous Sentence", systemImage: "gobackward") { speech.skipSentence(-1) }
+                    .disabled(speech.state == .idle)
+                Button(speech.state == .playing ? "Pause" : "Play",
+                       systemImage: speech.state == .playing ? "pause.circle.fill" : "play.circle.fill") {
+                    model.toggleSpeech(rate: Float(speechRate))
+                }
+                .font(.system(size: 44))
+                Button("Next Sentence", systemImage: "goforward") { speech.skipSentence(1) }
+                    .disabled(speech.state == .idle)
+                Button("Next Section", systemImage: "forward.end.fill") { Task { await model.move(by: 1) } }
+                    .disabled(book.spineIndex >= epub.spines.count - 1)
+            }
+            .labelStyle(.iconOnly)
+            .font(.title3)
+        }
         .padding(.horizontal, 20)
         .padding(.vertical, 10)
+        .frame(maxWidth: .infinity)
         .background(.ultraThinMaterial)
-    }
-
-    private func load() async {
-        guard epub == nil else { return }
-        let directory = BookStorage.extractedURL(for: book.id)
-        do {
-            let opened = try await Task.detached { try EpubExtractor().open(extractedDirectory: directory) }.value
-            guard !opened.spines.isEmpty else {
-                loadError = "This book has no readable sections."
-                return
-            }
-            epub = opened
-            await show(book.spineIndex, in: opened)
-        } catch {
-            loadError = error.localizedDescription
-        }
-    }
-
-    private func show(_ index: Int, in epub: Epub) async {
-        let clamped = min(max(index, 0), epub.spines.count - 1)
-        let spine = epub.spines[clamped]
-        let loaded = await Task.detached { (try? epub.content(forSpine: spine)) ?? "" }.value
-        if clamped != book.spineIndex {
-            book.spineIndex = clamped
-            book.textOffset = 0
-        }
-        text = loaded
     }
 }
 
 private struct ContentsSheet: View {
-    struct Entry: Identifiable {
-        let id = UUID()
-        let label: String
-        let depth: Int
-        let spineIndex: Int?
-    }
-
-    let epub: Epub
+    let entries: [ContentsEntry]
     let currentIndex: Int
     let onSelect: (Int) -> Void
-
-    private var entries: [Entry] {
-        var result: [Entry] = []
-        func walk(_ chapters: [ChapterItem], depth: Int) {
-            for chapter in chapters {
-                let label = chapter.label?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                result.append(Entry(label: label.isEmpty ? "Untitled" : label, depth: depth, spineIndex: epub.spineIndex(for: chapter)))
-                walk(chapter.subChapters, depth: depth + 1)
-            }
-        }
-        walk(epub.chapters, depth: 0)
-        if result.isEmpty {
-            result = epub.spines.indices.map { Entry(label: "Section \($0 + 1)", depth: 0, spineIndex: $0) }
-        }
-        return result
-    }
 
     var body: some View {
         NavigationStack {
