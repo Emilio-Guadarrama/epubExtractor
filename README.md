@@ -1,47 +1,39 @@
 # EpubExtractor
-![Swift 4.2](https://img.shields.io/badge/Swift-4.2-blue.svg)
-[![Version](https://img.shields.io/cocoapods/v/EpubExtractor.svg?style=flat)](http://cocoapods.org/pods/EpubExtractor)
-[![License](https://img.shields.io/cocoapods/l/EpubExtractor.svg?style=flat)](http://cocoapods.org/pods/EpubExtractor)
-[![Platform](https://img.shields.io/cocoapods/p/EpubExtractor.svg?style=flat)](http://cocoapods.org/pods/EpubExtractor)
 
-## Example
+Swift package that unzips and parses EPUB 2 / EPUB 3 files. Requires Swift 6, iOS 18+ / macOS 15+.
+Dependencies: [AEXML](https://github.com/tadija/AEXML), [ZIPFoundation](https://github.com/weichsel/ZIPFoundation).
 
-To run the example project, clone the repo, and run `pod install` from the Example directory first.
-
-## Requirements
-
-- Swift: 4.2+
-- XCode: 9.0+
-
-## Installation
-
-EpubExtractor is available through [CocoaPods](http://cocoapods.org). To install
-it, simply add the following line to your Podfile:
-
-```ruby
-pod "EpubExtractor"
-```
+> This fork is being modernized as the core of a reader app; see [PLAN.md](PLAN.md).
+> The `Example/` UIKit demo still targets the old CocoaPods setup and is not buildable until it is replaced.
 
 ## Usage
-```swift
-let epubExtractor = EPubExtractor()
-epubExtractor.delegate = self
-let destinationURL = //Destination URL
-epubExtractor.extractEpub(epubURL: epubURL, destinationFolder: destinationURL)
-```
 
-## EpubExtractorDelegate
 ```swift
-public protocol EpubExtractorDelegate {
-    func epubExactorDidExtractEpub(_ epub: Epub)
-    func epubExtractorDidFail(error: Error?)
+import EpubExtractor
+
+let extractor = EpubExtractor()                       // extracts under Application Support/EpubExtractor
+let epub = try await extractor.extract(epubURL: url)  // runs off the calling actor
+
+print(epub.title ?? "", epub.authors)
+for spine in epub.spines {
+    let text = try epub.content(forSpine: spine)     // thread-safe plain text, ready for text-to-speech
 }
+
+// Styled text (WebKit-backed, main actor only):
+let attributed = try await MainActor.run { try epub.attributedContent(forSpine: epub.spines[0]) }
+
+try extractor.removeExtractedEpub(epub)
 ```
 
-## Author
+## Changes from upstream 0.2.1
 
-f-meloni, franco.meloni91@gmail.com
+- Swift Package Manager instead of CocoaPods; SSZipArchive replaced by ZIPFoundation (rejects zip-slip paths).
+- `async throws` extraction replaces `EpubExtractorDelegate`; failed extractions clean up after themselves.
+- Fixed `identifier` (returned the publisher), `allContent()` (no separator), `linear` default, multiple `dc:creator`.
+- Plain-text extraction no longer needs WebKit or the main thread; `attributedContent(forSpine:)` is `@MainActor`.
+- TOC/NCX/nav lookup uses the spine `toc` attribute and `properties="nav"`; chapter URLs keep `#fragments`.
+- Spine hrefs and `container.xml` paths that escape the extracted folder are rejected.
 
 ## License
 
-EpubExtractor is available under the MIT license. See the LICENSE file for more info.
+MIT, see LICENSE. Original author: f-meloni.
